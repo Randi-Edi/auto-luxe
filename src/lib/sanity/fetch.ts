@@ -9,6 +9,7 @@ import {
   featuredVehiclesQuery,
   popularVehiclesQuery,
   testimonialsQuery,
+  testimonialsLimitQuery,
   faqsQuery,
   preOrdersQuery,
   preOrderByIdQuery,
@@ -195,6 +196,10 @@ export async function getPopularVehicles(): Promise<SanityVehicle[]> {
 
 export async function getTestimonials(): Promise<SanityTestimonial[]> {
   return client.fetch(testimonialsQuery)
+}
+
+export async function getTestimonialsLimit(limit: number = 3): Promise<SanityTestimonial[]> {
+  return client.fetch(testimonialsLimitQuery)
 }
 
 export async function getFAQs(): Promise<SanityFAQ[]> {

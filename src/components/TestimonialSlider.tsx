@@ -44,7 +44,14 @@ interface TestimonialSliderProps {
 }
 
 export default function TestimonialSlider({ testimonials = fallbackTestimonials }: TestimonialSliderProps) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, duration: 35 });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: true, 
+    duration: 35,
+    axis: 'x',
+    dragFree: false,
+    containScroll: 'trimSnaps',
+    skipSnaps: false,
+  });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -148,7 +155,7 @@ export default function TestimonialSlider({ testimonials = fallbackTestimonials 
               </div>
 
               {/* Content Section */}
-              <div className="p-8 sm:p-12 flex flex-col justify-center">
+              <div className="p-8 sm:p-12 flex flex-col justify-center min-h-[300px] lg:min-h-0">
                 <Quote className="h-12 w-12 text-silver/30 mb-6" />
                 <p className="text-lg sm:text-xl text-foreground leading-relaxed mb-8 italic">
                           "{testimonial.message}"
@@ -257,11 +264,12 @@ export default function TestimonialSlider({ testimonials = fallbackTestimonials 
         }
         .embla__container {
           display: flex;
-          touch-action: pan-y pinch-zoom;
+          touch-action: pan-x;
         }
         .embla__slide {
           flex: 0 0 100%;
           min-width: 0;
+          touch-action: pan-y;
         }
       `}</style>
     </section>

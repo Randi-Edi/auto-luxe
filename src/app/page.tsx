@@ -11,7 +11,7 @@ import {
   getReservedVehicles,
   getPopularVehicles,
   getFeaturedVehicles,
-  getTestimonials,
+  getTestimonialsLimit,
   getFeatures,
   getSiteSettings,
 } from "@/lib/sanity/fetch";
@@ -39,7 +39,7 @@ export default async function Home() {
     getReservedVehicles().catch(() => []),
     getPopularVehicles().catch(() => []),
     getFeaturedVehicles().catch(() => []),
-    getTestimonials().catch(() => []),
+    getTestimonialsLimit(3).catch(() => []), // Fetch only top 3 most recent testimonials for home page
     getFeatures().catch(() => []),
   ]);
 

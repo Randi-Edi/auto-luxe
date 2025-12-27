@@ -162,7 +162,16 @@ export const popularVehiclesQuery = groq`*[_type == "vehicle" && popular == true
 }`
 
 // Testimonial queries
-export const testimonialsQuery = groq`*[_type == "testimonial"] | order(order asc, _createdAt desc) {
+export const testimonialsQuery = groq`*[_type == "testimonial"] | order(_createdAt desc) {
+  _id,
+  name,
+  "image": image.asset->url,
+  message,
+  order
+}`
+
+// Testimonial query for home page - top 3 most recent
+export const testimonialsLimitQuery = groq`*[_type == "testimonial"] | order(_createdAt desc) [0...3] {
   _id,
   name,
   "image": image.asset->url,
