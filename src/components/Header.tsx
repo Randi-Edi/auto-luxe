@@ -26,6 +26,15 @@ export default function Header({ logo, phone }: HeaderProps) {
   
   const logoUrl = logo || "/ganegoda_logo.png";
   const phoneNumber = phone || "+1 (234) 567-890";
+  
+  // Remove country code from phone number for display (remove + and leading digits)
+  const formatPhoneForDisplay = (phone: string): string => {
+    // Remove country code (typically + followed by 1-3 digits)
+    // This removes patterns like +1, +94, +44, etc.
+    return phone.replace(/^\+\d{1,3}\s*/, '').trim();
+  };
+  
+  const displayPhone = formatPhoneForDisplay(phoneNumber);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-xl">
@@ -65,7 +74,7 @@ export default function Header({ logo, phone }: HeaderProps) {
               aria-label={`Call us at ${phoneNumber}`}
             >
               <Phone className="h-4 w-4 relative z-10" aria-hidden="true" />
-              <span className="relative z-10">{phoneNumber}</span>
+              <span className="relative z-10">{displayPhone}</span>
             </a>
 
             <Link href="/contact">
