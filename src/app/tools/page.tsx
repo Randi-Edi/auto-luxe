@@ -428,11 +428,14 @@ function LoanCalculator() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="10">10%</SelectItem>
-                <SelectItem value="15">15%</SelectItem>
-                <SelectItem value="20">20%</SelectItem>
-                <SelectItem value="25">25%</SelectItem>
-                <SelectItem value="30">30%</SelectItem>
+                {Array.from({ length: 8 }, (_, i) => {
+                  const percent = 10 + (i * 10);
+                  return (
+                    <SelectItem key={percent} value={percent.toString()}>
+                      {percent}%
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

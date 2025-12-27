@@ -1,4 +1,4 @@
-import { SiMercedes, SiBmw, SiPorsche, SiFerrari, SiAudi, SiTesla, SiBentley, SiLamborghini } from "react-icons/si";
+import { SiMercedes, SiBmw, SiPorsche, SiFerrari, SiAudi, SiTesla, SiBentley, SiLamborghini, SiToyota, SiHonda } from "react-icons/si";
 
 const brands = [
   { name: "Mercedes-Benz", icon: SiMercedes },
@@ -9,6 +9,8 @@ const brands = [
   { name: "Tesla", icon: SiTesla },
   { name: "Bentley", icon: SiBentley },
   { name: "Lamborghini", icon: SiLamborghini },
+  { name: "Toyota", icon: SiToyota },
+  { name: "Honda", icon: SiHonda },
 ];
 
 export default function BrandLogos() {

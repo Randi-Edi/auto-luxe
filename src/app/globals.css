@@ -205,6 +205,61 @@
   animation: brand-scroll 30s linear infinite;
 }
 
+/* Pulsating ring animation for call-to-action buttons */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(192, 192, 192, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(192, 192, 192, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(192, 192, 192, 0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-in-out infinite;
+  position: relative;
+}
+
+.animate-pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid rgba(192, 192, 192, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Disable animation on disabled buttons */
+.animate-pulse-ring:disabled,
+button:disabled.animate-pulse-ring {
+  animation: none;
+}
+
+.animate-pulse-ring:disabled::before,
+button:disabled.animate-pulse-ring::before {
+  animation: none;
+  display: none;
+}
+
 /* White theme map styling */
 .map-white-theme {
   filter: invert(1) hue-rotate(180deg) brightness(1.1) contrast(1.2) saturate(0);

@@ -21,7 +21,9 @@ import {
   Phone,
   MessageCircle,
 } from "lucide-react";
-import ContactForm from "@/components/ContactForm";
+import { SiWhatsapp } from "react-icons/si";
+import type { SanityPreOrder, SiteSettings } from "@/lib/sanity/fetch";
+import { getWebPImageUrl } from "@/lib/sanity/fetch";
 
 const porscheImage = "/attached_assets/generated_images/white_porsche_featured_listing.png";
 const bmwImage = "/attached_assets/generated_images/silver_bmw_featured_car.png";
@@ -243,10 +245,56 @@ const preOrderVehicles: Record<string, PreOrderVehicle> = {
 
 interface PreOrderDetailClientProps {
   vehicleId: string;
+  preOrderData?: SanityPreOrder | null;
+  siteSettings?: SiteSettings | null;
 }
 
-export default function PreOrderDetailClient({ vehicleId }: PreOrderDetailClientProps) {
-  const vehicle = vehicleId ? preOrderVehicles[vehicleId] : null;
+export default function PreOrderDetailClient({ vehicleId, preOrderData, siteSettings }: PreOrderDetailClientProps) {
+  // Use Sanity data if provided, otherwise fall back to static data
+  let vehicle: PreOrderVehicle | null = null;
+  
+  if (preOrderData) {
+    // Map Sanity data to component format
+    vehicle = {
+      id: preOrderData.id || preOrderData._id,
+      name: preOrderData.name,
+      expectedPrice: preOrderData.expectedPrice,
+      image: getWebPImageUrl(preOrderData.image, 1200, 800) || "/placeholder-car.jpg",
+      expectedArrival: preOrderData.expectedArrival,
+      slotsAvailable: preOrderData.slotsAvailable,
+      features: preOrderData.specifications || [],
+      deliveryDuration: preOrderData.deliveryDuration?.body || "8-12 weeks from order confirmation",
+      personalLC: {
+        available: !!preOrderData.personalLCImport,
+        description: preOrderData.personalLCImport?.body || "Personal Letter of Credit (LC) allows individuals to import vehicles for personal use with simplified documentation.",
+        benefits: preOrderData.personalLCImport?.items || [],
+      },
+      nonPersonalLC: {
+        available: !!preOrderData.nonPersonalLCImport,
+        description: preOrderData.nonPersonalLCImport?.body || "Non-Personal LC is ideal for businesses, companies, or commercial vehicle imports with comprehensive documentation.",
+        benefits: preOrderData.nonPersonalLCImport?.items || [],
+      },
+      warranty: {
+        duration: preOrderData.warrantyCoverage?.title || "2 years or 50,000 km",
+        coverage: preOrderData.warrantyCoverage?.items || [],
+        terms: preOrderData.warrantyCoverage?.body || "Warranty is valid from date of delivery and covers all manufacturing defects.",
+      },
+      financing: {
+        available: true,
+        loanToValue: "Up to 60% of vehicle value",
+        maxTenure: "7 years",
+        interestRate: "Competitive rates starting from 12% p.a.",
+        features: [
+          "Flexible repayment options",
+          "No hidden charges",
+          "Quick approval process (24-48 hours)",
+        ],
+      },
+    };
+  } else {
+    // Fallback to static data
+    vehicle = vehicleId ? preOrderVehicles[vehicleId] : null;
+  }
 
   useEffect(() => {
     // Scroll to top when component mounts or vehicle changes
@@ -350,28 +398,62 @@ export default function PreOrderDetailClient({ vehicleId }: PreOrderDetailClient
               ))}
             </ul>
 
-            <div className="flex gap-4 pt-4">
-              <Button
-                className="flex-1 bg-silver-light text-background font-medium"
-                onClick={() => {
-                  const whatsappMessage = encodeURIComponent(
-                    `Hi, I'm interested in pre-ordering the ${vehicle.name}. Please provide more details.`
-                  );
-                  window.open(`https://wa.me/94771234567?text=${whatsappMessage}`, '_blank');
-                }}
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Reserve Now
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+               <Link href="/contact" className="flex-1">
+                 <Button
+                   className="w-full bg-silver-light text-background font-medium"
+                 >
+                   <MessageCircle className="h-4 w-4 mr-2" />
+                   Reserve Now
+                 </Button>
+               </Link>
               <Button
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  document.getElementById('contact-form')?.scrollIntoView({ behavior: 'smooth' });
+                  const phoneNumber = siteSettings?.phone || '+1234567890';
+                  const formattedPhone = phoneNumber.replace(/[^\d+]/g, '');
+                  window.open(`tel:${formattedPhone}`, '_self');
                 }}
               >
                 <Phone className="h-4 w-4 mr-2" />
                 Contact Us
+              </Button>
+              <Button
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-black"
+                onClick={() => {
+                  const whatsappNumber = siteSettings?.whatsapp || '1234567890';
+                  const formattedWhatsApp = whatsappNumber.replace(/\D/g, '');
+                  
+                  // Get site URL from settings
+                  const siteUrl = siteSettings?.seoSettings?.siteUrl || 
+                                 siteSettings?.seoSettings?.canonicalUrl || 
+                                 (typeof window !== 'undefined' ? window.location.origin : 'https://www.example.com');
+                  
+                  // Construct pre-order page URL
+                  const preOrderUrl = `${siteUrl}/pre-orders/${vehicleId}`;
+                  
+                  // Create well-structured message
+                  const message = `*Pre-Order Inquiry*
+
+*Vehicle:* ${vehicle.name}
+*Expected Price:* ${vehicle.expectedPrice}
+*Expected Arrival:* ${vehicle.expectedArrival}
+*Slots Available:* ${vehicle.slotsAvailable}
+
+Hi! I'm interested in pre-ordering this vehicle. Please provide more details.
+
+View details: ${preOrderUrl}
+
+Quick Response Appreciated!`;
+                  
+                  // Encode message properly for WhatsApp URL
+                  const whatsappMessage = encodeURIComponent(message);
+                  window.open(`https://wa.me/${formattedWhatsApp}?text=${whatsappMessage}`, '_blank');
+                }}
+              >
+                <SiWhatsapp className="h-4 w-4 mr-2 text-black" />
+                WhatsApp
               </Button>
             </div>
           </div>
@@ -595,14 +677,6 @@ export default function PreOrderDetailClient({ vehicleId }: PreOrderDetailClient
             </div>
           </div>
         </Card>
-
-        {/* Contact Form */}
-        <div id="contact-form" className="max-w-2xl mx-auto">
-          <ContactForm
-            title="Reserve Your Pre-Order"
-            subtitle="Fill out the form below to reserve your vehicle. Our team will contact you within 24 hours to confirm your order and discuss payment options."
-          />
-        </div>
       </div>
     </main>
   );

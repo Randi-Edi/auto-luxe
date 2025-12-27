@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -13,10 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, SlidersHorizontal } from "lucide-react";
-import { formatLKRPrice } from "@/lib/utils";
 
 export interface FilterState {
-  priceRange: [number, number];
   brand: string;
   year: string;
   transmission: string;
@@ -30,8 +27,38 @@ interface VehicleFiltersProps {
   onReset: () => void;
 }
 
-const brands = ["All", "Mercedes-Benz", "BMW", "Porsche", "Ferrari", "Audi", "Range Rover", "Tesla"];
-const years = ["All", "2024", "2023", "2022", "2021", "2020"];
+const brands = [
+  "All",
+  "Mercedes-Benz",
+  "BMW",
+  "Porsche",
+  "Ferrari",
+  "Audi",
+  "Range Rover",
+  "Tesla",
+  "Toyota",
+  "Honda",
+  "Suzuki",
+  "Nissan",
+  "Mazda",
+  "Lexus",
+  "Volvo",
+  "Jaguar",
+  "Land Rover",
+  "Bentley",
+  "Lamborghini",
+  "McLaren",
+  "Aston Martin",
+  "Maserati",
+  "Rolls-Royce",
+  "Mini",
+  "Subaru",
+  "Mitsubishi",
+  "Hyundai",
+  "Kia"
+];
+// Generate years from 2000 to 2026
+const years = ["All", ...Array.from({ length: 27 }, (_, i) => (2026 - i).toString())];
 const transmissions = ["All", "Automatic", "Manual"];
 const fuels = ["All", "Petrol", "Diesel", "Electric", "Hybrid"];
 const conditions = ["All", "New", "Used"];
@@ -45,21 +72,6 @@ export default function VehicleFilters({ filters, onFiltersChange, onReset }: Ve
 
   const FilterContent = () => (
     <div className="space-y-6">
-      <div>
-        <Label className="text-sm font-medium text-foreground mb-3 block">
-          Price Range: {formatLKRPrice(filters.priceRange[0], { showCurrency: true })} - {formatLKRPrice(filters.priceRange[1], { showCurrency: true })}
-        </Label>
-        <Slider
-          value={filters.priceRange}
-          min={0}
-          max={150000000}
-          step={1000000}
-          onValueChange={(value) => updateFilter("priceRange", value as [number, number])}
-          className="mt-2"
-          data-testid="slider-price-range"
-        />
-      </div>
-
       <div>
         <Label className="text-sm font-medium text-foreground mb-2 block">Brand</Label>
         <Select value={filters.brand} onValueChange={(v) => updateFilter("brand", v)}>
@@ -146,7 +158,7 @@ export default function VehicleFilters({ filters, onFiltersChange, onReset }: Ve
         onClick={onReset}
         data-testid="button-reset-filters"
       >
-        <X className="h-4 w-4 mr-2" />
+        <X className="h-4 w-4 mr-2" aria-hidden="true" />
         Reset Filters
       </Button>
     </div>
@@ -160,7 +172,7 @@ export default function VehicleFilters({ filters, onFiltersChange, onReset }: Ve
         onClick={() => setMobileOpen(!mobileOpen)}
         data-testid="button-toggle-filters"
       >
-        <SlidersHorizontal className="h-4 w-4 mr-2" />
+        <SlidersHorizontal className="h-4 w-4 mr-2" aria-hidden="true" />
         {mobileOpen ? "Hide Filters" : "Show Filters"}
       </Button>
 
@@ -172,7 +184,7 @@ export default function VehicleFilters({ filters, onFiltersChange, onReset }: Ve
 
       <Card className="hidden lg:block border-silver/20 bg-card/30 backdrop-blur-sm p-6 sticky top-20">
         <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4" />
+          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
           Filters
         </h3>
         <FilterContent />

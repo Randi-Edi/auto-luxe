@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Quote, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import useEmblaCarousel from "embla-carousel-react";
 
 interface Testimonial {
   id: string;
@@ -12,8 +14,8 @@ interface Testimonial {
   message: string;
 }
 
-// todo: remove mock functionality
-const testimonials: Testimonial[] = [
+// Fallback testimonials if Sanity data is not available
+const fallbackTestimonials: Testimonial[] = [
   {
     id: "1",
     name: "James Mitchell",
@@ -37,25 +39,48 @@ const testimonials: Testimonial[] = [
   },
 ];
 
-export default function TestimonialSlider() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+interface TestimonialSliderProps {
+  testimonials?: Testimonial[];
+}
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-    }, 6000);
-    return () => clearInterval(timer);
+export default function TestimonialSlider({ testimonials = fallbackTestimonials }: TestimonialSliderProps) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, duration: 35 });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
+  const onSelect = useCallback((emblaApi: any) => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
   }, []);
 
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect(emblaApi);
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+  }, [emblaApi, onSelect]);
 
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-  };
+  // Auto-play functionality
+  useEffect(() => {
+    if (!emblaApi) return;
+    const autoplayInterval = setInterval(() => {
+      emblaApi.scrollNext();
+    }, 6000);
+    return () => clearInterval(autoplayInterval);
+  }, [emblaApi]);
 
-  const current = testimonials[currentIndex];
+  const current = testimonials[selectedIndex] || testimonials[0];
 
   return (
     <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -64,21 +89,47 @@ export default function TestimonialSlider() {
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-foreground mb-4">
             What Our Clients Say
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-6">
             Trusted by discerning buyers across the region
           </p>
         </div>
 
         <div className="relative">
           <Card className="border-silver/20 bg-card/30 backdrop-blur-sm overflow-hidden">
+            {/* View More Button - Fixed Top Right Corner */}
+            {testimonials.length > 1 && (
+              <div className="absolute top-6 right-6 z-30 pointer-events-auto">
+                <Link href="/testimonials">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-silver/30 gap-2 bg-background/80 backdrop-blur-sm"
+                    data-testid="button-view-more-testimonials"
+                  >
+                    View More Client Stories
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </Link>
+              </div>
+            )}
+            <div className="embla overflow-hidden" ref={emblaRef}>
+              <div className="embla__container flex">
+                {testimonials.map((testimonial, index) => (
+                  <div key={testimonial.id} className="embla__slide flex-[0_0_100%] min-w-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
               {/* Image Section */}
-              <div className="relative h-64 lg:h-auto min-h-[400px] overflow-hidden bg-black/50 flex items-center justify-center">
-                <div className="relative w-full h-full flex items-center justify-center">
+              <div className="relative min-h-[400px] lg:min-h-[500px] overflow-hidden bg-black/50 flex items-center justify-center">
+                <div className="relative w-full h-full min-h-[400px] lg:min-h-[500px] flex items-center justify-center p-4">
                   <img
-                    src={current.image}
-                    alt={current.name}
-                    className="max-w-full max-h-full object-contain transition-opacity duration-700"
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="max-w-full max-h-[85vh] w-auto h-auto object-contain transition-opacity duration-700"
+                    style={{ 
+                      maxHeight: '85vh',
+                      maxWidth: '100%',
+                      height: 'auto',
+                      width: 'auto'
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
                 </div>
@@ -86,11 +137,11 @@ export default function TestimonialSlider() {
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-16 rounded-full border-2 border-white/30 overflow-hidden bg-background/20 backdrop-blur-sm flex items-center justify-center">
                       <span className="text-2xl font-bold text-white">
-                        {current.name[0]}
+                                {testimonial.name[0]}
                       </span>
                     </div>
                     <div>
-                      <div className="font-semibold text-white text-lg">{current.name}</div>
+                              <div className="font-semibold text-white text-lg">{testimonial.name}</div>
                     </div>
                   </div>
                 </div>
@@ -100,32 +151,41 @@ export default function TestimonialSlider() {
               <div className="p-8 sm:p-12 flex flex-col justify-center">
                 <Quote className="h-12 w-12 text-silver/30 mb-6" />
                 <p className="text-lg sm:text-xl text-foreground leading-relaxed mb-8 italic">
-                  "{current.message}"
+                          "{testimonial.message}"
                 </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
                 
                 {/* Navigation dots for mobile */}
-                <div className="lg:hidden flex items-center justify-center gap-4 mt-6">
+            <div className="lg:hidden flex items-center justify-center gap-4 p-6">
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={goToPrevious}
+                onClick={scrollPrev}
+                disabled={!canScrollPrev}
                     className="border-silver/30"
                     data-testid="button-testimonial-prev"
+                    aria-label="Previous testimonial"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                   </Button>
 
                   <div className="flex gap-2">
                     {testimonials.map((_, index) => (
                       <button
                         key={index}
-                        onClick={() => setCurrentIndex(index)}
+                    onClick={() => emblaApi?.scrollTo(index)}
                         className={`h-2 rounded-full transition-all ${
-                          index === currentIndex
+                      index === selectedIndex
                             ? "w-6 bg-silver-light"
                             : "w-2 bg-silver/30"
                         }`}
                         data-testid={`button-testimonial-dot-${index}`}
+                        aria-label={`Go to testimonial ${index + 1}`}
                       />
                     ))}
                   </div>
@@ -133,14 +193,14 @@ export default function TestimonialSlider() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={goToNext}
+                onClick={scrollNext}
+                disabled={!canScrollNext}
                     className="border-silver/30"
                     data-testid="button-testimonial-next"
+                    aria-label="Next testimonial"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
                   </Button>
-                </div>
-              </div>
             </div>
 
             {/* Navigation for desktop - positioned on image */}
@@ -148,22 +208,26 @@ export default function TestimonialSlider() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={goToPrevious}
+                onClick={scrollPrev}
+                disabled={!canScrollPrev}
                 className="border-white/30 bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm h-12 w-12 rounded-full"
                 data-testid="button-testimonial-prev"
+                aria-label="Previous testimonial"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
             <div className="hidden lg:flex absolute top-1/2 right-4 -translate-y-1/2 z-20">
               <Button
                 variant="outline"
                 size="icon"
-                onClick={goToNext}
+                onClick={scrollNext}
+                disabled={!canScrollNext}
                 className="border-white/30 bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm h-12 w-12 rounded-full"
                 data-testid="button-testimonial-next"
+                aria-label="Next testimonial"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
 
@@ -172,19 +236,34 @@ export default function TestimonialSlider() {
               {testimonials.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
+                  onClick={() => emblaApi?.scrollTo(index)}
                   className={`h-2 rounded-full transition-all ${
-                    index === currentIndex
+                    index === selectedIndex
                       ? "w-6 bg-white"
                       : "w-2 bg-white/40"
                   }`}
                   data-testid={`button-testimonial-dot-${index}`}
+                  aria-label={`Go to testimonial ${index + 1}`}
                 />
               ))}
             </div>
           </Card>
         </div>
       </div>
+
+      <style jsx global>{`
+        .embla {
+          overflow: hidden;
+        }
+        .embla__container {
+          display: flex;
+          touch-action: pan-y pinch-zoom;
+        }
+        .embla__slide {
+          flex: 0 0 100%;
+          min-width: 0;
+        }
+      `}</style>
     </section>
   );
 }

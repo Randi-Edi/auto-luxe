@@ -82,7 +82,7 @@ export default function FeaturedListings({
             <Link href="/vehicles">
               <Button variant="outline" className="border-silver/30 gap-2" data-testid="button-view-all-featured">
                 View All
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
             </Link>
           )}

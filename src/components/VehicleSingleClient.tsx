@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import useEmblaCarousel from "embla-carousel-react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,8 @@ import { SiWhatsapp } from "react-icons/si";
 import VehicleCard, { type Vehicle, type VehicleStatus } from "@/components/VehicleCard";
 import VehicleQuickView from "@/components/VehicleQuickView";
 import { formatLKRPrice } from "@/lib/utils";
+import type { SanityVehicle, SiteSettings } from "@/lib/sanity/fetch";
+import { getWebPImageUrl } from "@/lib/sanity/fetch";
 
 // BMW 520d images
 const bmw520Img1 = "/attached_assets/bmw 520/587696355_17897336799358785_4107318543107151809_n.jpg";
@@ -114,6 +117,7 @@ interface VehicleDetails {
   description: string;
   features: string[];
   images: string[];
+  condition?: string;
 }
 
 const vehicleDetailsMap: Record<string, VehicleDetails> = {
@@ -465,32 +469,154 @@ const allVehicles: Vehicle[] = [
 
 interface VehicleSingleClientProps {
   vehicleId: string;
+  vehicleData?: SanityVehicle | null;
+  similarVehicles?: SanityVehicle[];
+  siteSettings?: SiteSettings | null;
 }
 
-export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientProps) {
-  const vehicle = allVehicles.find((v) => v.id === vehicleId) || allVehicles[0];
-  const vehicleDetails = vehicleDetailsMap[vehicle.id] || vehicleDetailsMap["f1"];
+export default function VehicleSingleClient({ vehicleId, vehicleData, similarVehicles = [], siteSettings }: VehicleSingleClientProps) {
+  // Use Sanity data if provided, otherwise fall back to static data
+  let vehicle: Vehicle;
+  let vehicleDetails: VehicleDetails;
+
+  if (vehicleData) {
+    // Use Sanity data
+    vehicle = {
+      id: vehicleData.id || vehicleData._id,
+      name: vehicleData.name,
+      price: vehicleData.price,
+      image: getWebPImageUrl(vehicleData.mainImage, 800, 600) || "/placeholder-car.jpg",
+      year: vehicleData.year,
+      mileage: vehicleData.mileage,
+      fuel: vehicleData.fuel,
+      transmission: vehicleData.transmission,
+      status: vehicleData.status,
+    };
+    vehicleDetails = {
+      brand: vehicleData.brand || "",
+      model: vehicleData.model || "",
+      engine: vehicleData.engine || "",
+      driveType: vehicleData.driveType || "",
+      color: vehicleData.color || "",
+      vin: "", // VIN not in schema, can be added later if needed
+      description: vehicleData.description || "",
+      features: vehicleData.features || [],
+      condition: vehicleData.condition || (vehicleData.status === "new" ? "new" : "used"),
+      images: vehicleData.images && vehicleData.images.length > 0 
+        ? vehicleData.images.map(img => getWebPImageUrl(img, 1200, 800))
+        : [getWebPImageUrl(vehicleData.mainImage, 1200, 800) || "/placeholder-car.jpg"],
+    } as VehicleDetails;
+  } else {
+    // Fallback to static data
+    vehicle = allVehicles.find((v) => v.id === vehicleId) || allVehicles[0];
+    vehicleDetails = vehicleDetailsMap[vehicle.id] || vehicleDetailsMap["f1"];
+  }
+
   const vehicleImages = vehicleDetails.images.length > 0 ? vehicleDetails.images : [vehicle.image];
   
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Main image carousel
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, duration: 35 });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  // Thumbnail carousel
+  const [thumbRef, thumbApi] = useEmblaCarousel({
+    containScroll: "keepSnaps",
+    dragFree: true,
+  });
+
   const [showAllSpecs, setShowAllSpecs] = useState(false);
   const [quickViewVehicle, setQuickViewVehicle] = useState<Vehicle | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const status = statusConfig[vehicle.status];
-  const isSold = vehicle.status === "sold";
+  const onSelect = useCallback((emblaApi: any) => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, []);
 
-  const whatsappMessage = encodeURIComponent(
-    `Hi, I'm interested in the ${vehicle.year} ${vehicle.name} listed at ${formatLKRPrice(vehicle.price)}. Please provide more details.`
+  const onThumbClick = useCallback(
+    (index: number) => {
+      if (!emblaApi || !thumbApi) return;
+      emblaApi.scrollTo(index);
+    },
+    [emblaApi, thumbApi]
   );
 
-  const goToPrevious = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + vehicleImages.length) % vehicleImages.length);
-  };
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect(emblaApi);
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+  }, [emblaApi, onSelect]);
 
-  const goToNext = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % vehicleImages.length);
-  };
+  useEffect(() => {
+    if (!emblaApi || !thumbApi) return;
+    emblaApi.on("select", () => {
+      const selected = emblaApi.selectedScrollSnap();
+      thumbApi.scrollTo(selected);
+    });
+  }, [emblaApi, thumbApi]);
+
+  // Ensure status exists and is valid, default to 'used' if not
+  const vehicleStatus = vehicle.status || 'used'
+  const status = statusConfig[vehicleStatus] || statusConfig.used
+  const isSold = vehicleStatus === "sold";
+
+  // Get phone and WhatsApp numbers from site settings
+  const phoneNumber = siteSettings?.phone || '+1234567890';
+  const whatsappNumber = siteSettings?.whatsapp || '1234567890';
+  
+  // Format phone number for tel: link (remove any non-digit characters except +)
+  const formattedPhone = phoneNumber.replace(/[^\d+]/g, '');
+  
+  // Format WhatsApp number (remove any non-digit characters)
+  const formattedWhatsApp = whatsappNumber.replace(/\D/g, '');
+
+  // Get vehicle slug for URL construction
+  const vehicleSlug = vehicleData 
+    ? (typeof vehicleData.slug === 'string' 
+        ? vehicleData.slug 
+        : vehicleData.slug?.current || vehicleData.id || vehicleData._id)
+    : vehicleId;
+
+  // Get site URL from settings
+  const siteUrl = siteSettings?.seoSettings?.siteUrl || 
+                 siteSettings?.seoSettings?.canonicalUrl || 
+                 (typeof window !== 'undefined' ? window.location.origin : 'https://www.example.com');
+  
+  // Construct vehicle page URL
+  const vehicleUrl = `${siteUrl}/vehicles/${vehicleSlug}`;
+
+  // Create well-structured message
+  const message = `*Vehicle Purchase Inquiry*
+
+*Vehicle:* ${vehicle.year} ${vehicle.name}
+*Brand:* ${vehicleDetails.brand}
+*Price:* ${formatLKRPrice(vehicle.price)}
+*Mileage:* ${vehicle.mileage.toLocaleString()} km
+*Fuel Type:* ${vehicle.fuel}
+*Transmission:* ${vehicle.transmission}
+*Color:* ${vehicleDetails.color || 'N/A'}
+
+Hi! I'm interested in purchasing this vehicle. Please provide more details.
+
+View details: ${vehicleUrl}
+
+Quick Response Appreciated!`;
+
+  // Encode message properly for WhatsApp URL
+  const whatsappMessage = encodeURIComponent(message);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
   const specs = [
     { icon: Car, label: "Brand", value: vehicleDetails.brand },
@@ -501,14 +627,27 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
     { icon: Fuel, label: "Fuel Type", value: vehicle.fuel },
     { icon: Settings2, label: "Transmission", value: vehicle.transmission },
     { icon: Zap, label: "Drive Type", value: vehicleDetails.driveType },
-    { icon: CheckCircle2, label: "Condition", value: vehicle.status === "new" ? "New" : "Pre-Owned" },
+    { icon: CheckCircle2, label: "Condition", value: (vehicleDetails.condition ?? (vehicle.status === "new" ? "New" : "Pre-Owned")) },
     { icon: Palette, label: "Color", value: vehicleDetails.color },
     { icon: Hash, label: "VIN", value: vehicleDetails.vin },
   ];
 
   const visibleSpecs = showAllSpecs ? specs : specs.slice(0, 6);
 
-  const similarVehicles = allVehicles.filter((v) => v.id !== vehicle.id).slice(0, 3);
+  // Map similar vehicles from Sanity data
+  const mappedSimilarVehicles = vehicleData && similarVehicles.length > 0
+    ? similarVehicles.map((v) => ({
+        id: v.id || v._id,
+        name: v.name || 'Unnamed Vehicle',
+        price: v.price || 0,
+        image: getWebPImageUrl(v.mainImage, 800, 600) || "/placeholder-car.jpg",
+        year: v.year || new Date().getFullYear(),
+        mileage: v.mileage || 0,
+        fuel: v.fuel || 'N/A',
+        transmission: v.transmission || 'N/A',
+        status: (v.status || 'used') as VehicleStatus, // Ensure status is valid
+      }))
+    : allVehicles.filter((v) => v.id !== vehicle.id).slice(0, 3);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -521,9 +660,9 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
       if (e.key === "Escape") {
         setIsLightboxOpen(false);
       } else if (e.key === "ArrowLeft") {
-        setCurrentImageIndex((prev) => (prev - 1 + vehicleImages.length) % vehicleImages.length);
+        if (emblaApi) emblaApi.scrollPrev();
       } else if (e.key === "ArrowRight") {
-        setCurrentImageIndex((prev) => (prev + 1) % vehicleImages.length);
+        if (emblaApi) emblaApi.scrollNext();
       }
     };
 
@@ -536,7 +675,42 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [isLightboxOpen, vehicleImages.length]);
+  }, [isLightboxOpen, vehicleImages.length, emblaApi]);
+
+  // Add Embla styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .embla {
+        overflow: hidden;
+      }
+      .embla__container {
+        display: flex;
+        touch-action: pan-y pinch-zoom;
+      }
+      .embla__slide {
+        flex: 0 0 100%;
+        min-width: 0;
+      }
+      .embla-thumbs {
+        overflow: hidden;
+      }
+      .embla-thumbs__container {
+        display: flex;
+        touch-action: pan-y pinch-zoom;
+      }
+      .embla-thumbs__slide {
+        flex: 0 0 auto;
+        min-width: 0;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, []);
 
   return (
     <main className="py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
@@ -556,67 +730,84 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
           <div className="lg:col-span-2 space-y-4">
             <div className="relative rounded-lg overflow-hidden bg-black">
-              <div className="relative aspect-video group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
-                <img
-                  src={vehicleImages[currentImageIndex]}
-                  alt={vehicle.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="eager"
-                  decoding="async"
-                />
-                
-                <div className="absolute top-3 left-3 z-20">
-                  <Badge variant="outline" className={`${status.className} border font-semibold px-2 py-1 text-sm`}>
-                  {status.label}
-                </Badge>
-                </div>
+              <div className="embla overflow-hidden" ref={emblaRef}>
+                <div className="embla__container flex">
+                  {vehicleImages.map((img, index) => (
+                    <div key={index} className="embla__slide flex-[0_0_100%] min-w-0">
+                      <div className="relative aspect-video group cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
+                        <img
+                          src={img}
+                          alt={`${vehicle.name} - Image ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          loading={index === 0 ? "eager" : "lazy"}
+                          decoding="async"
+                        />
+                        
+                        {index === 0 && (
+                          <div className="absolute top-3 left-3 z-20">
+                            <Badge variant="outline" className={`${status.className} border font-semibold px-2 py-1 text-sm`}>
+                              {status.label}
+                            </Badge>
+                          </div>
+                        )}
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToPrevious();
-                  }}
-                  data-testid="button-image-prev"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToNext();
-                  }}
-                  data-testid="button-image-next"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollPrev();
+                          }}
+                          disabled={!canScrollPrev}
+                          data-testid="button-image-prev"
+                          aria-label="Previous image"
+                        >
+                          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            scrollNext();
+                          }}
+                          disabled={!canScrollNext}
+                          data-testid="button-image-next"
+                          aria-label="Next image"
+                        >
+                          <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {vehicleImages.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`shrink-0 w-20 h-14 rounded-md overflow-hidden border-2 transition-all ${
-                    index === currentImageIndex ? "border-silver-light" : "border-transparent opacity-60"
-                  }`}
-                  data-testid={`button-thumbnail-${index}`}
-                >
-                  <img 
-                    src={img} 
-                    alt={`${vehicle.name} ${index + 1}`} 
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </button>
-              ))}
+            <div className="embla-thumbs overflow-hidden" ref={thumbRef}>
+              <div className="embla-thumbs__container flex gap-2">
+                {vehicleImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onThumbClick(index)}
+                    className={`embla-thumbs__slide shrink-0 w-20 h-14 rounded-md overflow-hidden border-2 transition-all ${
+                      index === selectedIndex ? "border-silver-light" : "border-transparent opacity-60"
+                    }`}
+                    data-testid={`button-thumbnail-${index}`}
+                    aria-label={`View image ${index + 1} of ${vehicle.name}`}
+                  >
+                    <img 
+                      src={img} 
+                      alt={`${vehicle.name} ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
 
             <Card className="border-silver/20 bg-card/30 backdrop-blur-sm p-6">
@@ -640,11 +831,12 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
                   className="w-full mt-4 text-silver-light"
                   onClick={() => setShowAllSpecs(!showAllSpecs)}
                   data-testid="button-toggle-specs"
+                  aria-label={showAllSpecs ? "Show fewer specifications" : "Show all specifications"}
                 >
                   {showAllSpecs ? (
-                    <>Show Less <ChevronUp className="h-4 w-4 ml-1" /></>
+                    <>Show Less <ChevronUp className="h-4 w-4 ml-1" aria-hidden="true" /></>
                   ) : (
-                    <>Show All Specifications <ChevronDown className="h-4 w-4 ml-1" /></>
+                    <>Show All Specifications <ChevronDown className="h-4 w-4 ml-1" aria-hidden="true" /></>
                   )}
                 </Button>
               )}
@@ -687,30 +879,22 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
 
               <div className="space-y-3 mb-6">
                 <Button
-                  className="w-full bg-silver-light text-background font-medium gap-2"
-                  disabled={isSold}
-                  onClick={() => console.log("Register interest")}
-                  data-testid="button-register-interest"
-                >
-                  Register Interest
-                </Button>
-                <Button
                   variant="outline"
-                  className="w-full border-silver/30 gap-2"
-                  onClick={() => window.open("tel:+1234567890")}
+                  className={`w-full border-silver/30 gap-2 relative overflow-visible ${!isSold ? 'animate-pulse-ring' : ''}`}
+                  onClick={() => window.open(`tel:${formattedPhone}`)}
                   disabled={isSold}
                   data-testid="button-call"
                 >
-                  <Phone className="h-4 w-4" />
-                  Call Us
+                  <Phone className="h-4 w-4 relative z-10" aria-hidden="true" />
+                  <span className="relative z-10">Call Us</span>
                 </Button>
                 <Button
                   className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2"
-                  onClick={() => window.open(`https://wa.me/1234567890?text=${whatsappMessage}`, "_blank")}
+                  onClick={() => window.open(`https://wa.me/${formattedWhatsApp}?text=${whatsappMessage}`, "_blank")}
                   disabled={isSold}
                   data-testid="button-whatsapp"
                 >
-                  <SiWhatsapp className="h-4 w-4" />
+                  <SiWhatsapp className="h-4 w-4" aria-hidden="true" />
                   WhatsApp
                 </Button>
               </div>
@@ -743,32 +927,36 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
           </div>
         </div>
 
-        <section>
-          <h2 className="font-display text-2xl font-bold text-foreground mb-6">Similar Vehicles</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {similarVehicles.map((v) => (
-              <VehicleCard key={v.id} vehicle={v} onQuickView={setQuickViewVehicle} />
-            ))}
-          </div>
-        </section>
+        {mappedSimilarVehicles.length > 0 && (
+          <section>
+            <h2 className="font-display text-2xl font-bold text-foreground mb-6">Similar Vehicles</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {mappedSimilarVehicles.map((v) => (
+                <VehicleCard key={v.id} vehicle={v} onQuickView={setQuickViewVehicle} />
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-silver/20 lg:hidden z-40">
           <div className="flex gap-3 max-w-lg mx-auto">
             <Button
               variant="outline"
               className="flex-1 border-silver/30 gap-2"
-              onClick={() => window.open("tel:+1234567890")}
+              onClick={() => window.open(`tel:${formattedPhone}`)}
               disabled={isSold}
+              aria-label="Call us about this vehicle"
             >
-              <Phone className="h-4 w-4" />
+              <Phone className="h-4 w-4" aria-hidden="true" />
               Call
             </Button>
             <Button
               className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-2"
-              onClick={() => window.open(`https://wa.me/1234567890?text=${whatsappMessage}`, "_blank")}
+              onClick={() => window.open(`https://wa.me/${formattedWhatsApp}?text=${whatsappMessage}`, "_blank")}
               disabled={isSold}
+              aria-label="Contact us on WhatsApp about this vehicle"
             >
-              <SiWhatsapp className="h-4 w-4" />
+              <SiWhatsapp className="h-4 w-4" aria-hidden="true" />
               WhatsApp
             </Button>
           </div>
@@ -778,6 +966,7 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
           vehicle={quickViewVehicle}
           open={!!quickViewVehicle}
           onOpenChange={(open) => !open && setQuickViewVehicle(null)}
+          siteSettings={siteSettings}
         />
 
         {/* Lightbox */}
@@ -788,7 +977,7 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
           >
             <div className="relative w-full h-full flex items-center justify-center p-4">
             <img
-              src={vehicleImages[currentImageIndex]}
+              src={vehicleImages[selectedIndex]}
               alt={vehicle.name}
               className="max-w-full max-h-full object-contain"
               onClick={(e) => e.stopPropagation()}
@@ -804,12 +993,14 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      goToPrevious();
+                      scrollPrev();
                     }}
+                    disabled={!canScrollPrev}
                     className="border-white/30 bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm h-12 w-12 rounded-full"
                     data-testid="button-lightbox-prev"
+                    aria-label="Previous image"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
                   </Button>
                 </div>
               )}
@@ -822,12 +1013,14 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
                     size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      goToNext();
+                      scrollNext();
                     }}
+                    disabled={!canScrollNext}
                     className="border-white/30 bg-black/50 hover:bg-black/70 text-white backdrop-blur-sm h-12 w-12 rounded-full"
                     data-testid="button-lightbox-next"
+                    aria-label="Next image"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
                   </Button>
                 </div>
               )}
@@ -840,14 +1033,15 @@ export default function VehicleSingleClient({ vehicleId }: VehicleSingleClientPr
                       key={index}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCurrentImageIndex(index);
+                        onThumbClick(index);
                       }}
                       className={`h-2 rounded-full transition-all ${
-                        index === currentImageIndex
+                        index === selectedIndex
                           ? "w-6 bg-white"
                           : "w-2 bg-white/40 hover:bg-white/60"
                       }`}
                       data-testid={`button-lightbox-dot-${index}`}
+                      aria-label={`Go to image ${index + 1}`}
                     />
                   ))}
                 </div>

@@ -1,39 +1,79 @@
-"use client"
-
+import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Phone, Mail, MapPin, Clock, MessageCircle } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import ContactForm from "@/components/ContactForm";
 import Map from "@/components/Map";
+import { getSiteSettings } from "@/lib/sanity/fetch";
+import { generateSiteMetadata } from "@/lib/seo";
 
-const contactInfo = [
-  {
-    icon: Phone,
-    title: "Phone",
-    details: ["+1 (234) 567-890", "+1 (234) 567-891"],
-    action: { label: "Call Now", href: "tel:+1234567890" },
-  },
-  {
-    icon: Mail,
-    title: "Email",
-    details: ["info@elitemotors.com", "sales@elitemotors.com"],
-    action: { label: "Send Email", href: "mailto:info@elitemotors.com" },
-  },
-  {
-    icon: MapPin,
-    title: "Location",
-    details: ["XWVV+59 Kadawatha", "Sri Lanka"],
-    action: { label: "Get Directions", href: "#map" },
-  },
-  {
-    icon: Clock,
-    title: "Business Hours",
-    details: ["Mon-Fri: 9:00 AM - 7:00 PM", "Sat: 10:00 AM - 5:00 PM"],
-  },
-];
+export const revalidate = 3600;
 
-export default function Contact() {
+export async function generateMetadata(): Promise<Metadata> {
+  const siteSettings = await getSiteSettings().catch(() => null);
+  return generateSiteMetadata(siteSettings, 'Contact');
+}
+
+export default async function Contact() {
+  const siteSettings = await getSiteSettings().catch(() => null);
+
+  // Format phone number for tel: link (remove any non-digit characters except +)
+  const phoneNumber = siteSettings?.phone || '+1234567890';
+  const formattedPhone = phoneNumber.replace(/[^\d+]/g, '');
+  
+  // Format WhatsApp number (remove any non-digit characters)
+  const whatsappNumber = siteSettings?.whatsapp || '1234567890';
+  const formattedWhatsApp = whatsappNumber.replace(/\D/g, '');
+
+  // Format email
+  const email = siteSettings?.email || 'info@example.com';
+
+  // Format address - split by newlines if it's a multi-line address
+  const addressLines = siteSettings?.address 
+    ? siteSettings.address.split('\n').filter(line => line.trim())
+    : ['XWVV+59 Kadawatha', 'Sri Lanka'];
+
+  // Get location plus code for directions link
+  const locationPlusCode = siteSettings?.locationPlusCode || 'XWVV+59 Kadawatha';
+  const getDirectionsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationPlusCode)}`;
+
+  // Business hours - use from site settings or default
+  const businessHours = siteSettings?.businessHours && siteSettings.businessHours.length > 0
+    ? siteSettings.businessHours
+    : ['Mon-Fri: 9:00 AM - 7:00 PM', 'Sat: 10:00 AM - 5:00 PM'];
+
+  const contactInfo: Array<{
+    icon: typeof Phone;
+    title: string;
+    details: string[];
+    action?: { label: string; href: string; target?: string };
+  }> = [
+    {
+      icon: Phone,
+      title: "Phone",
+      details: phoneNumber ? [phoneNumber] : [],
+      action: { label: "Call Now", href: `tel:${formattedPhone}` },
+    },
+    {
+      icon: Mail,
+      title: "Email",
+      details: email ? [email] : [],
+      action: { label: "Send Email", href: `mailto:${email}` },
+    },
+    {
+      icon: MapPin,
+      title: "Location",
+      details: addressLines,
+      action: { label: "Get Directions", href: getDirectionsUrl, target: "_blank" },
+    },
+    {
+      icon: Clock,
+      title: "Business Hours",
+      details: businessHours,
+    },
+  ];
+
   return (
     <main className="py-8 px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -72,6 +112,8 @@ export default function Contact() {
                       {item.action && (
                         <a
                           href={item.action.href}
+                          target={item.action.target || undefined}
+                          rel={item.action.target === "_blank" ? "noopener noreferrer" : undefined}
                           className="text-sm text-silver-light mt-2 inline-block hover:underline"
                           data-testid={`link-${item.title.toLowerCase()}-action`}
                         >
@@ -95,14 +137,20 @@ export default function Contact() {
                     Chat with us directly for quick responses
                   </p>
                 </div>
-                <Button
-                  className="bg-emerald-600 hover:bg-emerald-700 gap-2"
-                  onClick={() => window.open("https://wa.me/1234567890", "_blank")}
-                  data-testid="button-whatsapp"
+                <a
+                  href={`https://wa.me/${formattedWhatsApp}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  Chat Now
-                </Button>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700 gap-2"
+                    data-testid="button-whatsapp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Chat Now
+                  </Button>
+                </a>
               </div>
             </Card>
 
@@ -122,6 +170,3 @@ export default function Contact() {
     </main>
   );
 }
-
-
-

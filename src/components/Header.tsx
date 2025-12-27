@@ -15,17 +15,25 @@ const navLinks = [
   { label: "Contact", href: "/contact" },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  logo?: string;
+  phone?: string;
+}
+
+export default function Header({ logo, phone }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  
+  const logoUrl = logo || "/ganegoda_logo.png";
+  const phoneNumber = phone || "+1 (234) 567-890";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2" data-testid="link-logo">
+          <Link href="/" className="flex items-center gap-2" data-testid="link-logo" aria-label="Ganegoda International Home">
             <img 
-              src="/ganegoda_logo.png" 
+              src={logoUrl} 
               alt="Ganegoda International Logo" 
               className="h-10 w-auto"
             />
@@ -51,12 +59,13 @@ export default function Header() {
 
           <div className="flex items-center gap-3">
             <a
-              href="tel:+1234567890"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-silver-light/40 rounded-md hover:border-silver-light hover:bg-silver-light/10 transition-all"
+              href={`tel:${phoneNumber.replace(/\s/g, '')}`}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground border border-silver-light/40 rounded-md hover:border-silver-light hover:bg-silver-light/10 transition-all relative animate-pulse-ring overflow-visible"
               data-testid="link-phone"
+              aria-label={`Call us at ${phoneNumber}`}
             >
-              <Phone className="h-4 w-4" />
-              <span>+1 (234) 567-890</span>
+              <Phone className="h-4 w-4 relative z-10" aria-hidden="true" />
+              <span className="relative z-10">{phoneNumber}</span>
             </a>
 
             <Link href="/contact">
@@ -74,8 +83,9 @@ export default function Header() {
               className="lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               data-testid="button-mobile-menu"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </Button>
           </div>
         </div>
