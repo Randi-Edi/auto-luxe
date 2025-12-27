@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Providers } from "./providers";
 import { getSiteSettings } from "@/lib/sanity/fetch";
 import { generateSiteMetadata } from "@/lib/seo";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -42,6 +43,7 @@ export default async function RootLayout({
             <Header logo={siteSettings?.logo} phone={siteSettings?.phone} />
             <div className="flex-1">
               {children}
+              <SpeedInsights />
             </div>
             <Footer 
               logo={siteSettings?.logo}
