@@ -7,7 +7,7 @@ interface SanityWebhookPayload {
   _id: string
   slug?: {
     current?: string
-  }
+  } | string
   id?: string
 }
 
@@ -27,11 +27,18 @@ export async function POST(request: NextRequest) {
 
     // Parse webhook payload
     const body: SanityWebhookPayload = await request.json()
-    const { _type, _id, slug, id } = body
+    
+    // Log full payload for debugging
+    console.log('📦 Full webhook payload:', JSON.stringify(body, null, 2))
+    
+    // Handle different payload formats - Sanity might send the document directly or wrapped
+    const document = body._type ? body : (body as any).document || body
+    const { _type, _id, slug, id } = document
 
     if (!_type) {
+      console.error('❌ Missing _type in webhook payload:', body)
       return NextResponse.json(
-        { message: 'Missing _type in webhook payload' },
+        { message: 'Missing _type in webhook payload', received: body },
         { status: 400 }
       )
     }
@@ -46,7 +53,7 @@ export async function POST(request: NextRequest) {
         revalidateTag('vehicles')
 
         // Revalidate specific vehicle page if slug or id is available
-        const vehicleSlug = slug?.current || id || _id
+        const vehicleSlug = (typeof slug === 'string' ? slug : slug?.current) || id || _id
         if (vehicleSlug) {
           revalidatePath(`/vehicles/${vehicleSlug}`)
         }
@@ -55,22 +62,37 @@ export async function POST(request: NextRequest) {
         revalidatePath('/')
         revalidateTag('home')
 
-        console.log(`✅ Revalidated vehicle pages for: ${vehicleSlug}`)
+        console.log(`✅ Revalidated vehicle pages for: ${vehicleSlug || 'all'}`)
         break
       }
 
-      case 'preOrder': {
+      case 'preOrder':
+      case 'pre-order': {
         // Revalidate pre-orders listing page
         revalidatePath('/pre-orders')
         revalidateTag('pre-orders')
 
         // Revalidate specific pre-order page if id is available
-        const preOrderId = id || _id
+        // Try to get id from different possible fields
+        const preOrderId = id || 
+          (typeof slug === 'string' ? slug : slug?.current) || 
+          _id
+        
         if (preOrderId) {
           revalidatePath(`/pre-orders/${preOrderId}`)
+          revalidateTag(`pre-order-${preOrderId}`)
         }
 
-        console.log(`✅ Revalidated pre-order pages for: ${preOrderId}`)
+        // Also revalidate the page without specific ID to catch all cases
+        revalidatePath('/pre-orders', 'page')
+
+        console.log(`✅ Revalidated pre-order pages for: ${preOrderId || 'all'}`)
+        console.log(`   - Revalidated path: /pre-orders`)
+        console.log(`   - Revalidated tag: pre-orders`)
+        if (preOrderId) {
+          console.log(`   - Revalidated path: /pre-orders/${preOrderId}`)
+          console.log(`   - Revalidated tag: pre-order-${preOrderId}`)
+        }
         break
       }
 
