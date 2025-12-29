@@ -5,9 +5,8 @@ import { getSiteSettings, getTermsOfService } from "@/lib/sanity/fetch";
 import { generateSiteMetadata } from "@/lib/seo";
 import PortableTextRenderer from "@/components/PortableTextRenderer";
 import { defaultTermsOfServiceContent } from "@/lib/defaultContent";
-import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-export const revalidate = REVALIDATE_TIME;
+export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings().catch(() => null);

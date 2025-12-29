@@ -3,9 +3,8 @@ import { getTestimonials, getSiteSettings } from "@/lib/sanity/fetch";
 import { mapSanityTestimonial } from "@/lib/sanity/mappers";
 import { generateSiteMetadata } from "@/lib/seo";
 import TestimonialsClient from "./TestimonialsClient";
-import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-export const revalidate = REVALIDATE_TIME;
+export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings().catch(() => null);

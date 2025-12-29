@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next'
 import { getVehicles, getSiteSettings, getPreOrders } from '@/lib/sanity/fetch'
-import { REVALIDATE_TIME } from '@/lib/revalidate'
 
-export const revalidate = REVALIDATE_TIME
+export const revalidate = 3600 // Revalidate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteSettings = await getSiteSettings().catch(() => null)

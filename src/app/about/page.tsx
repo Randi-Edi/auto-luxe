@@ -1,6 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Car, Globe, Handshake, MessageSquare, Award, Users, TrendingUp } from "lucide-react";
 
+export const revalidate = 3600;
+
 const timeline = [
   { year: "2015", title: "Founded", description: "Ganegoda International was established with a vision to redefine luxury car buying." },
   { year: "2017", title: "Expansion", description: "Expanded our showroom and introduced premium import services." },

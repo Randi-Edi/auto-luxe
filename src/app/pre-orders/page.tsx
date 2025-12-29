@@ -3,9 +3,8 @@ import PreOrdersClient from "./PreOrdersClient";
 import { getPreOrders, getSiteSettings } from "@/lib/sanity/fetch";
 import { mapSanityPreOrder } from "@/lib/sanity/mappers";
 import { generateSiteMetadata } from "@/lib/seo";
-import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-export const revalidate = REVALIDATE_TIME;
+export const revalidate = 3600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings().catch(() => null);

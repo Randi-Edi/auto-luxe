@@ -3,10 +3,9 @@ import PreOrderDetailClient from "@/components/PreOrderDetailClient";
 import { getPreOrders, getPreOrderById, getSiteSettings } from "@/lib/sanity/fetch";
 import type { SanityPreOrder } from "@/lib/sanity/fetch";
 import { generatePreOrderMetadata } from "@/lib/seo";
-import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-// ISR: Revalidate based on REVALIDATE_TIME environment variable
-export const revalidate = REVALIDATE_TIME;
+// ISR: Revalidate every hour (server-side rendering with caching)
+export const revalidate = 3600;
 
 interface PreOrderPageProps {
   params: Promise<{ id: string }>;
