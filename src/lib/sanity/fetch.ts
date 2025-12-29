@@ -14,6 +14,8 @@ import {
   preOrdersQuery,
   preOrderByIdQuery,
   featuresQuery,
+  privacyPolicyQuery,
+  termsOfServiceQuery,
 } from './queries'
 
 // Types
@@ -216,6 +218,28 @@ export async function getPreOrderById(id: string): Promise<SanityPreOrder | null
 
 export async function getFeatures(): Promise<SanityFeature[]> {
   return client.fetch(featuresQuery)
+}
+
+export interface SanityPrivacyPolicy {
+  _id: string
+  title: string
+  lastUpdated: string
+  content: any[] // Portable text content
+}
+
+export interface SanityTermsOfService {
+  _id: string
+  title: string
+  lastUpdated: string
+  content: any[] // Portable text content
+}
+
+export async function getPrivacyPolicy(): Promise<SanityPrivacyPolicy | null> {
+  return client.fetch(privacyPolicyQuery)
+}
+
+export async function getTermsOfService(): Promise<SanityTermsOfService | null> {
+  return client.fetch(termsOfServiceQuery)
 }
 
 // Helper to get WebP image URL

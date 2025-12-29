@@ -202,12 +202,12 @@ export default function Footer({
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Ganegoda International. All rights reserved.</p>
             <div className="flex gap-6">
-              <a href="#" className="hover:text-foreground transition-colors" data-testid="link-privacy">
+              <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="link-privacy">
                 Privacy Policy
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors" data-testid="link-terms">
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors" data-testid="link-terms">
                 Terms of Service
-              </a>
+              </Link>
             </div>
           </div>
         </div>

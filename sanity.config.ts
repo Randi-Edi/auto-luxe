@@ -11,6 +11,8 @@ import heroImage from './sanity/schemas/heroSlide'
 import heroSection from './sanity/schemas/heroSection'
 import feature from './sanity/schemas/feature'
 import siteSettings from './sanity/schemas/siteSettings'
+import privacyPolicy from './sanity/schemas/privacyPolicy'
+import termsOfService from './sanity/schemas/termsOfService'
 
 // Load environment variables for Sanity config
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || ''
@@ -42,6 +44,8 @@ export default defineConfig({
       faq,
       preOrder,
       feature,
+      privacyPolicy,
+      termsOfService,
     ],
   },
 })

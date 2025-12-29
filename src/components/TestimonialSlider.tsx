@@ -110,11 +110,11 @@ export default function TestimonialSlider({ testimonials = fallbackTestimonials 
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-silver/30 gap-2 bg-background/80 backdrop-blur-sm"
+                    className="border-silver/30 gap-2 bg-background/80 backdrop-blur-sm relative animate-pulse-ring overflow-visible"
                     data-testid="button-view-more-testimonials"
                   >
-                    View More Client Stories
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    <span className="relative z-10">View More Client Stories</span>
+                    <ArrowRight className="h-4 w-4 relative z-10" aria-hidden="true" />
                   </Button>
                 </Link>
               </div>

@@ -187,6 +187,22 @@ export const faqsQuery = groq`*[_type == "faq"] | order(order asc, _createdAt de
   order
 }`
 
+// Privacy Policy query
+export const privacyPolicyQuery = groq`*[_type == "privacyPolicy"][0] {
+  _id,
+  title,
+  lastUpdated,
+  content
+}`
+
+// Terms of Service query
+export const termsOfServiceQuery = groq`*[_type == "termsOfService"][0] {
+  _id,
+  title,
+  lastUpdated,
+  content
+}`
+
 // Pre-order queries
 export const preOrdersQuery = groq`*[_type == "preOrder"] | order(_createdAt desc) {
   _id,
