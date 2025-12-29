@@ -7,8 +7,9 @@ import ContactForm from "@/components/ContactForm";
 import Map from "@/components/Map";
 import { getSiteSettings } from "@/lib/sanity/fetch";
 import { generateSiteMetadata } from "@/lib/seo";
+import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-export const revalidate = 3600;
+export const revalidate = REVALIDATE_TIME;
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings().catch(() => null);

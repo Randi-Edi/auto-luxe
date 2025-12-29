@@ -1,3 +1,5 @@
+import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { client, urlForImage } from './client'
 import {
   siteSettingsQuery,
@@ -167,7 +169,7 @@ export async function getHeroImages(): Promise<HeroImage[]> {
   return client.fetch(heroImagesQuery)
 }
 
-export async function getVehicles(): Promise<SanityVehicle[]> {
+const fetchVehicles = async (): Promise<SanityVehicle[]> => {
   try {
     const vehicles = await client.fetch(vehiclesQuery)
     if (!vehicles || vehicles.length === 0) {
@@ -180,40 +182,90 @@ export async function getVehicles(): Promise<SanityVehicle[]> {
   }
 }
 
+export const getVehicles = unstable_cache(
+  fetchVehicles,
+  ['vehicles'],
+  { tags: ['vehicles'] }
+)
+
 export async function getVehicleById(id: string): Promise<SanityVehicle | null> {
-  return client.fetch(vehicleByIdOrSlugQuery, { identifier: id })
+  return unstable_cache(
+    async () => client.fetch(vehicleByIdOrSlugQuery, { identifier: id }),
+    [`vehicle-${id}`],
+    { tags: ['vehicles', `vehicle-${id}`] }
+  )()
 }
 
-export async function getReservedVehicles(): Promise<SanityVehicle[]> {
+const fetchReservedVehicles = async (): Promise<SanityVehicle[]> => {
   return client.fetch(reservedVehiclesQuery)
 }
 
-export async function getFeaturedVehicles(): Promise<SanityVehicle[]> {
+export const getReservedVehicles = unstable_cache(
+  fetchReservedVehicles,
+  ['reserved-vehicles'],
+  { tags: ['vehicles', 'home'] }
+)
+
+const fetchFeaturedVehicles = async (): Promise<SanityVehicle[]> => {
   return client.fetch(featuredVehiclesQuery)
 }
 
-export async function getPopularVehicles(): Promise<SanityVehicle[]> {
+export const getFeaturedVehicles = unstable_cache(
+  fetchFeaturedVehicles,
+  ['featured-vehicles'],
+  { tags: ['vehicles', 'home'] }
+)
+
+const fetchPopularVehicles = async (): Promise<SanityVehicle[]> => {
   return client.fetch(popularVehiclesQuery)
 }
 
-export async function getTestimonials(): Promise<SanityTestimonial[]> {
+export const getPopularVehicles = unstable_cache(
+  fetchPopularVehicles,
+  ['popular-vehicles'],
+  { tags: ['vehicles', 'home'] }
+)
+
+const fetchTestimonials = async (): Promise<SanityTestimonial[]> => {
   return client.fetch(testimonialsQuery)
 }
 
-export async function getTestimonialsLimit(limit: number = 3): Promise<SanityTestimonial[]> {
+export const getTestimonials = unstable_cache(
+  fetchTestimonials,
+  ['testimonials'],
+  { tags: ['testimonials'] }
+)
+
+const fetchTestimonialsLimit = async (limit: number = 3): Promise<SanityTestimonial[]> => {
   return client.fetch(testimonialsLimitQuery)
 }
+
+export const getTestimonialsLimit = unstable_cache(
+  fetchTestimonialsLimit,
+  ['testimonials-limit'],
+  { tags: ['testimonials', 'home'] }
+)
 
 export async function getFAQs(): Promise<SanityFAQ[]> {
   return client.fetch(faqsQuery)
 }
 
-export async function getPreOrders(): Promise<SanityPreOrder[]> {
+const fetchPreOrders = async (): Promise<SanityPreOrder[]> => {
   return client.fetch(preOrdersQuery)
 }
 
+export const getPreOrders = unstable_cache(
+  fetchPreOrders,
+  ['pre-orders'],
+  { tags: ['pre-orders'] }
+)
+
 export async function getPreOrderById(id: string): Promise<SanityPreOrder | null> {
-  return client.fetch(preOrderByIdQuery, { identifier: id })
+  return unstable_cache(
+    async () => client.fetch(preOrderByIdQuery, { identifier: id }),
+    [`pre-order-${id}`],
+    { tags: ['pre-orders', `pre-order-${id}`] }
+  )()
 }
 
 export async function getFeatures(): Promise<SanityFeature[]> {

@@ -7,10 +7,11 @@ import { Providers } from "./providers";
 import { getSiteSettings } from "@/lib/sanity/fetch";
 import { generateSiteMetadata } from "@/lib/seo";
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { REVALIDATE_TIME } from "@/lib/revalidate";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = REVALIDATE_TIME;
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteSettings = await getSiteSettings().catch(() => null);

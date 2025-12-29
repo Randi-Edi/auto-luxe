@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import VehicleSingleClient from "@/components/VehicleSingleClient";
 import { getVehicles, getVehicleById, getSiteSettings } from "@/lib/sanity/fetch";
 import { generateVehicleMetadata, generateVehicleStructuredData } from "@/lib/seo";
+import { REVALIDATE_TIME } from "@/lib/revalidate";
 
-// ISR: Revalidate every hour (server-side rendering with caching)
-export const revalidate = 3600;
+// ISR: Revalidate based on REVALIDATE_TIME environment variable
+export const revalidate = REVALIDATE_TIME;
 
 interface VehiclePageProps {
   params: Promise<{ slug: string }>;
