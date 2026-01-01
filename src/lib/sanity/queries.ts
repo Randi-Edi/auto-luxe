@@ -257,3 +257,35 @@ export const featuresQuery = groq`*[_type == "feature"] | order(order asc, _crea
   order
 }`
 
+// About Page query
+export const aboutPageQuery = groq`*[_type == "aboutPage"][0] {
+  _id,
+  title,
+  subtitle,
+  intro,
+  "directorImage": directorImage.asset->url,
+  directorName,
+  directorMessage,
+  whoWeAre,
+  coreOperations {
+    title,
+    intro,
+    operations[] {
+      title,
+      description
+    }
+  },
+  whyChooseUs {
+    title,
+    points[] {
+      title,
+      description
+    }
+  },
+  visitShowroom {
+    title,
+    description,
+    tagline
+  }
+}`
+

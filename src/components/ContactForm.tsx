@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Send, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { executeRecaptcha } from "@/components/ReCaptchaProvider";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -39,11 +40,24 @@ type FormData = z.infer<typeof formSchema>;
 interface ContactFormProps {
   title?: string;
   subtitle?: string;
+  whatsappNumber?: string;
+  recaptchaSiteKey?: string;
 }
+
+// Map inquiry values to readable labels
+const inquiryLabels: Record<string, string> = {
+  buy: "Buying a Vehicle",
+  sell: "Selling a Vehicle",
+  preorder: "Pre-Order Inquiry",
+  trade: "Trade-In",
+  other: "Other",
+};
 
 export default function ContactForm({
   title = "Register Your Interest",
   subtitle = "Fill out the form below and our team will get back to you within 24 hours.",
+  whatsappNumber = "",
+  recaptchaSiteKey = "",
 }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -61,15 +75,115 @@ export default function ContactForm({
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    // todo: replace with actual API call
-    console.log("Form submitted:", data);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    form.reset();
+
+    try {
+      // Verify reCAPTCHA before processing form
+      if (recaptchaSiteKey) {
+        try {
+          // Execute reCAPTCHA
+          const recaptchaToken = await executeRecaptcha(
+            recaptchaSiteKey,
+            "contact_form_submit"
+          );
+
+          // Verify token with backend
+          const verifyResponse = await fetch("/api/verify-recaptcha", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token: recaptchaToken }),
+          });
+
+          const verifyData = await verifyResponse.json();
+
+          if (!verifyData.success) {
+            toast({
+              title: "Verification Failed",
+              description: "Please try again. reCAPTCHA verification failed.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (recaptchaError) {
+          console.error("reCAPTCHA error:", recaptchaError);
+          // In development or if reCAPTCHA fails, allow submission but log the error
+          if (process.env.NODE_ENV === "production") {
+            toast({
+              title: "Verification Error",
+              description: "Unable to verify submission. Please try again.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
+      // Debug: Log the received WhatsApp number
+      console.log("Received WhatsApp number:", whatsappNumber);
+      
+      // Format WhatsApp number from site settings (remove any non-digit characters)
+      const formattedWhatsApp = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : '';
+      
+      console.log("Formatted WhatsApp number:", formattedWhatsApp);
+      
+      if (!formattedWhatsApp || formattedWhatsApp.length < 8) {
+        console.error("WhatsApp number validation failed:", {
+          original: whatsappNumber,
+          formatted: formattedWhatsApp,
+          length: formattedWhatsApp?.length
+        });
+        toast({
+          title: "Error",
+          description: "WhatsApp number is not configured in site settings. Please contact us directly.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Format inquiry type to readable label
+      const inquiryLabel = inquiryLabels[data.inquiry] || data.inquiry;
+
+      // Create formatted message
+      const message = `*New Enquiry from website*\n\n` +
+        `*Name:* ${data.name}\n` +
+        `*Email:* ${data.email}\n` +
+        `*Phone:* ${data.phone}\n` +
+        `*Inquiry Type:* ${inquiryLabel}\n\n` +
+        `*Message:*\n${data.message}`;
+
+      // URL encode the message
+      const encodedMessage = encodeURIComponent(message);
+
+      // Create WhatsApp URL
+      const whatsappUrl = `https://wa.me/${formattedWhatsApp}?text=${encodedMessage}`;
+
+      // Open WhatsApp in a new window/tab
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+
+      // Show success message
+      toast({
+        title: "Opening WhatsApp...",
+        description: "Please send the message to complete your submission.",
+      });
+
+      // Reset form after a short delay
+      setTimeout(() => {
+        form.reset();
+        setIsSubmitting(false);
+      }, 500);
+    } catch (error) {
+      console.error("Error opening WhatsApp:", error);
+      toast({
+        title: "Error",
+        description: "Failed to open WhatsApp. Please try again.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (

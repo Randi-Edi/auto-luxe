@@ -22,9 +22,19 @@ export default async function Contact() {
   const phoneNumber = siteSettings?.phone || '+1234567890';
   const formattedPhone = phoneNumber.replace(/[^\d+]/g, '');
   
-  // Format WhatsApp number (remove any non-digit characters)
-  const whatsappNumber = siteSettings?.whatsapp || '1234567890';
-  const formattedWhatsApp = whatsappNumber.replace(/\D/g, '');
+  // Format WhatsApp number from site settings (remove any non-digit characters)
+  // Fallback to phone number if WhatsApp number is not set
+  const whatsappNumber = siteSettings?.whatsapp || siteSettings?.phone || '';
+  const formattedWhatsApp = whatsappNumber ? whatsappNumber.replace(/\D/g, '') : '';
+  
+  // Debug: Log site settings (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Site Settings:', {
+      whatsapp: siteSettings?.whatsapp,
+      phone: siteSettings?.phone,
+      formattedWhatsApp: formattedWhatsApp
+    });
+  }
 
   // Format email
   const email = siteSettings?.email || 'info@example.com';
@@ -164,7 +174,10 @@ export default async function Contact() {
             </Card>
           </div>
 
-          <ContactForm />
+          <ContactForm 
+            whatsappNumber={formattedWhatsApp}
+            recaptchaSiteKey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+          />
         </div>
       </div>
     </main>

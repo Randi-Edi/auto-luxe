@@ -18,6 +18,7 @@ import {
   featuresQuery,
   privacyPolicyQuery,
   termsOfServiceQuery,
+  aboutPageQuery,
 } from './queries'
 
 // Types
@@ -286,12 +287,51 @@ export interface SanityTermsOfService {
   content: any[] // Portable text content
 }
 
+export interface AboutPageOperation {
+  title: string
+  description: string
+}
+
+export interface AboutPagePoint {
+  title: string
+  description: string
+}
+
+export interface SanityAboutPage {
+  _id: string
+  title: string
+  subtitle: string
+  intro: string
+  directorImage: string
+  directorName: string
+  directorMessage: any[] // Portable text content
+  whoWeAre: any[] // Portable text content
+  coreOperations: {
+    title: string
+    intro: string
+    operations: AboutPageOperation[]
+  }
+  whyChooseUs: {
+    title: string
+    points: AboutPagePoint[]
+  }
+  visitShowroom: {
+    title: string
+    description: string
+    tagline: string
+  }
+}
+
 export async function getPrivacyPolicy(): Promise<SanityPrivacyPolicy | null> {
   return client.fetch(privacyPolicyQuery)
 }
 
 export async function getTermsOfService(): Promise<SanityTermsOfService | null> {
   return client.fetch(termsOfServiceQuery)
+}
+
+export async function getAboutPage(): Promise<SanityAboutPage | null> {
+  return client.fetch(aboutPageQuery)
 }
 
 // Helper to get WebP image URL

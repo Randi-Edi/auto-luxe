@@ -395,5 +395,12 @@ button:disabled.animate-pulse-ring::before {
   }
 }
 
+/* Hide reCAPTCHA badge */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  display: none !important;
+}
+
 
 

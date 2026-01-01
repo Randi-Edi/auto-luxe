@@ -13,6 +13,7 @@ import feature from './sanity/schemas/feature'
 import siteSettings from './sanity/schemas/siteSettings'
 import privacyPolicy from './sanity/schemas/privacyPolicy'
 import termsOfService from './sanity/schemas/termsOfService'
+import aboutPage from './sanity/schemas/aboutPage'
 
 // Load environment variables for Sanity config
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || ''
@@ -46,6 +47,7 @@ export default defineConfig({
       feature,
       privacyPolicy,
       termsOfService,
+      aboutPage,
     ],
   },
 })

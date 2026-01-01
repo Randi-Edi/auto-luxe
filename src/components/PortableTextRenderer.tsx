@@ -33,6 +33,11 @@ export default function PortableTextRenderer({ content }: PortableTextRendererPr
                 {children}
               </p>
             ),
+            blockquote: ({ children }) => (
+              <blockquote className="border-l-4 border-silver-light pl-6 py-4 my-6 italic text-lg text-foreground/90 bg-silver/5 rounded-r-lg">
+                {children}
+              </blockquote>
+            ),
           },
           list: {
             bullet: ({ children }) => (
